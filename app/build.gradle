@@ -2,6 +2,8 @@ apply plugin: 'com.android.application'
 
 apply plugin: 'jacoco'
 
+apply plugin: 'org.sonarqube'
+
 apply plugin: 'kotlin-android'
 
 apply plugin: 'kotlin-android-extensions'
@@ -9,9 +11,21 @@ apply plugin: 'kotlin-android-extensions'
 /**
  * references: [
  * 1. https://proandroiddev.com/unified-code-coverage-for-android-revisited-44789c9b722f,
- * 2. https://github.com/rafaeltoledo/unified-code-coverage-android/blob/kotlin-coverage/app/build.gradle
+ * 2. https://github.com/rafaeltoledo/unified-code-coverage-android/blob/kotlin-coverage/app/build.gradle,
+ * 3. https://medium.com/@ramadonno/code-coverage-kotlin-vs-java-with-sonarqube-and-jacoco-ceafb7224640
+ * ]
+ *
+ * for multiple variant setup: [
+ * 1. https://www.veskoiliev.com/how-to-setup-jacoco-for-android-project-with-java-kotlin-and-multiple-flavours/
+ * ]
+ *
+ * setup with sonarqube: [
+ * 1. https://medium.com/@ramadonno/code-coverage-kotlin-vs-java-with-sonarqube-and-jacoco-ceafb7224640,
+ * 2. https://docs.sonarqube.org/latest/analysis/scan/sonarscanner-for-gradle/,
+ * 3. https://mobiosolutions.com/install-sonarqube-installation-guide-mac-os/
  * ]
  */
+
 jacoco {
     toolVersion = "$jacocoVersion"
 }
@@ -23,8 +37,9 @@ tasks.withType(Test) {
 task jacocoTestReport(type: JacocoReport, dependsOn: ['testDebugUnitTest', 'createDebugCoverageReport']) {
 
     reports {
-        xml.enabled = true
+        xml.enabled = false
         html.enabled = true
+        csv.enabled = false
     }
 
     def fileFilter = [
@@ -56,7 +71,6 @@ android {
         test.java.srcDirs += 'src/test/kotlin'
         androidTest.java.srcDirs += 'src/androidTest/kotlin'
     }
-
     buildTypes {
         debug {
             testCoverageEnabled true
@@ -91,4 +105,22 @@ dependencies {
     androidTestImplementation 'androidx.test:rules:1.2.0'
     androidTestImplementation 'androidx.test:runner:1.2.0'
     androidTestUtil 'androidx.test:orchestrator:1.2.0'
+}
+
+sonarqube {
+    properties {
+        def libraries = project.android.sdkDirectory.getPath() + "/platforms/android-23/android.jar"/* + ", build/intermediates/exploded-aar*//**//*classes.jar"*/
+        property "sonar.sources", "src/main/kotlin"
+        property "sonar.binaries", "build/intermediates/classes/debug"
+        property "sonar.libraries", libraries
+        property "sonar.tests", "src/test/kotlin, src/androidTest/kotlin"
+        property "sonar.java.test.binaries", "build/intermediates/class/debug"
+
+        // error
+        // property "sonar.java.test.libraries", libraries    property "sonar.jacoco.reportPath", "build/jacoco/testDebugUnitTest.exec"
+        property "sonar.java.coveragePlugin", "jacoco"
+        property "sonar.junit.reportsPath", "build/test-results/debug"
+        property "sonar.android.lint.report", "build/outputs/lint-results"
+    }
+
 }
